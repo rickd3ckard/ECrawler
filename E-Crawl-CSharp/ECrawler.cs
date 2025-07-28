@@ -26,15 +26,15 @@ namespace E_Crawl_CSharp
             client.DefaultRequestHeaders.Referrer = new Uri("https://rule34.xxx/");
 
             string queryresponse = await client.GetStringAsync(this.DomainName);
-            string[] urlList = getURLsFromPage(queryresponse);
+            WebsiteURL[] urlList = getURLsFromPage(queryresponse);
 
 
-            foreach (string url in urlList)
+            foreach (WebsiteURL websiteUrl in urlList)
             {
-                Console.WriteLine("[SCANNING] " + url);
+                Console.WriteLine("[SCANNING] " + websiteUrl.URL);
                 try
                 {
-                    queryresponse = await client.GetStringAsync(url);
+                    queryresponse = await client.GetStringAsync(websiteUrl.URL);
                     string[] mails = getMailsFromPage(queryresponse);
                     if (mails.Length == 0) { continue; }
 
@@ -63,18 +63,18 @@ namespace E_Crawl_CSharp
             Console.ResetColor();
         }
 
-        private string[] getURLsFromPage(string text) {
+        private WebsiteURL[] getURLsFromPage(string text) {
             Regex hrefregex = new Regex("href=[\"\\'](.*?)[\"\\']");
             MatchCollection hrefs = hrefregex.Matches(text);
 
-            List<string> hrefslist = new List<string>();
+            List<WebsiteURL> hrefslist = new List<WebsiteURL>();
             foreach (Match match in hrefs)
             {
                 string href = match.Value;
                 if (href.StartsWith("href=")) { href = match.Value.ToString().Substring(6, match.Value.ToString().Length - 1 - 6); }
                 if (href.StartsWith("/")) { href = this.DomainName.Substring(0, this.DomainName.Length - 1) + href; }
                 if (!href.StartsWith(this.DomainName)) { continue; }
-                if (!hrefslist.Contains(href)) { hrefslist.Add(href); }
+                if (!hrefslist.Any(w => w.URL == href)) { hrefslist.Add(new WebsiteURL(href)); }
             }
             return hrefslist.ToArray();
         }
