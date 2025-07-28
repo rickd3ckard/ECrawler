@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Net;
+using System.Text.RegularExpressions;
 
 namespace E_Crawl_CSharp
 {
@@ -9,12 +10,12 @@ namespace E_Crawl_CSharp
             this.DomainName = DomainName;
             this.Depth = Depth;
             this.Completed = false;
-            this.Result = new List<string>();
+            this.Result = new List<WebsiteEmail>();
             this.WebsiteURLs = new List<WebsiteURL>();
             this.TargetMailCount = TargetMailCount;
         }
 
-        public List<string> Result { get; }
+        public List<WebsiteEmail> Result { get; }
         public bool Completed  { get; }
         public string DomainName { get; }
         public int Depth { get; }
@@ -27,12 +28,12 @@ namespace E_Crawl_CSharp
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
             client.DefaultRequestHeaders.Accept.ParseAdd("image/webp,*/*;q=0.8"); ;
             client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("en-US,en;q=0.9");
-            client.DefaultRequestHeaders.Referrer = new Uri("https://rule34.xxx/");
+            client.DefaultRequestHeaders.Referrer = new Uri("https://www.maisonsmoches.be/");
 
             await recursive(client, this.Depth);
 
             Console.ForegroundColor = ConsoleColor.Green;
-            foreach (string mail in this.Result) { Console.WriteLine(mail); }
+            foreach (WebsiteEmail mail in this.Result) { Console.WriteLine(mail.Email + " -> " + mail.URL); }
             Console.ResetColor();
         }
 
@@ -61,7 +62,7 @@ namespace E_Crawl_CSharp
                         if (string.IsNullOrWhiteSpace(mail)) { continue; }
                         string cleanmail = mail;
                         if (cleanmail.StartsWith("mailto:")) { cleanmail = cleanmail.Substring(7); }
-                        if (!this.Result.Contains(cleanmail)) { this.Result.Add(cleanmail); }
+                        if (!this.Result.Any(e => e.Email == cleanmail)) { this.Result.Add(new WebsiteEmail(cleanmail, websiteUrl.URL)); }
                         if (this.TargetMailCount == Result.Count) { return; }
                     }
                 }
@@ -114,5 +115,18 @@ namespace E_Crawl_CSharp
 
         public string URL { get; set; }
         public bool Visited { get; set; }
+    }
+
+    public class WebsiteEmail
+    {
+        public WebsiteEmail(string Email, string URL)
+        {
+            this.Email = Email;
+            this.URL = URL;
+        }
+        
+        public string Email { get; }
+        public string URL { get; }
+    
     }
 }
