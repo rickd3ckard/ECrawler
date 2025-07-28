@@ -4,19 +4,20 @@ namespace E_Crawl_CSharp
 {
     public class ECrawler
     {
-        public ECrawler(string DomainName, int Depth)
+        public ECrawler(string DomainName, int Depth = 1)
         {
             this.DomainName = DomainName;
             this.Depth = Depth;
             this.Completed = false;
             this.Result = new List<string>();
+            this.WebsiteURLs = new List<WebsiteURL>();
         }
 
         public List<string> Result { get; }
         public bool Completed  { get; }
         public string DomainName { get; }
         public int Depth { get; }
-
+        public List<WebsiteURL> WebsiteURLs { get; }
         public async Task Execute()
         {
             HttpClient client = new HttpClient();
@@ -25,16 +26,28 @@ namespace E_Crawl_CSharp
             client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("en-US,en;q=0.9");
             client.DefaultRequestHeaders.Referrer = new Uri("https://rule34.xxx/");
 
-            string queryresponse = await client.GetStringAsync(this.DomainName);
-            WebsiteURL[] urlList = getURLsFromPage(queryresponse);
+            await recursive(client, this.Depth);
 
+            Console.ForegroundColor = ConsoleColor.Green;
+            foreach (string mail in this.Result) { Console.WriteLine(mail); }
+            Console.ResetColor();
+        }
 
-            foreach (WebsiteURL websiteUrl in urlList)
+        private async Task recursive(HttpClient Client,  int MaxDepth, int Depth = 1)
+        {
+            if (Depth > MaxDepth) { return; }
+            string queryresponse = await Client.GetStringAsync(this.DomainName);
+            getURLsFromPage(queryresponse);
+
+            foreach (WebsiteURL websiteUrl in this.WebsiteURLs)
             {
-                Console.WriteLine("[SCANNING] " + websiteUrl.URL);
+                if (websiteUrl.Visited == true) { continue; }
+                websiteUrl.Visited = true;
+
+                Console.WriteLine("[SCANNING] " + "Depth: " + Depth + " " + websiteUrl.URL);
                 try
                 {
-                    queryresponse = await client.GetStringAsync(websiteUrl.URL);
+                    queryresponse = await Client.GetStringAsync(websiteUrl.URL);
                     string[] mails = getMailsFromPage(queryresponse);
                     if (mails.Length == 0) { continue; }
 
@@ -44,39 +57,34 @@ namespace E_Crawl_CSharp
                         string cleanmail = mail;
 
                         if (cleanmail.StartsWith("mailto:")) { cleanmail = cleanmail.Substring(7); }
-                        if (!this.Result.Contains(cleanmail)) {this.Result.Add(cleanmail); }
+                        if (!this.Result.Contains(cleanmail)) { this.Result.Add(cleanmail); }
                     }
                 }
 
-                catch (Exception ex) {
+                catch (Exception ex)
+                {
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("[ERROR]: " + ex.Message.ToString());
                     Console.ResetColor();
-                }
+                }           
             }
 
-            Console.ForegroundColor = ConsoleColor.Green;
-            foreach (string mail in this.Result)
-            {
-                Console.WriteLine(mail);
-            }
-            Console.ResetColor();
+            await recursive(Client, MaxDepth, Depth + 1);
         }
 
         private WebsiteURL[] getURLsFromPage(string text) {
             Regex hrefregex = new Regex("href=[\"\\'](.*?)[\"\\']");
             MatchCollection hrefs = hrefregex.Matches(text);
 
-            List<WebsiteURL> hrefslist = new List<WebsiteURL>();
             foreach (Match match in hrefs)
             {
-                string href = match.Value;
-                if (href.StartsWith("href=")) { href = match.Value.ToString().Substring(6, match.Value.ToString().Length - 1 - 6); }
+                string href = match.Value;          
+                if (href.StartsWith("href=")) { href = match.Value.ToString().Substring("href=".Length + 1, match.Value.ToString().Length - 1 - ("href=".Length + 1)); }
                 if (href.StartsWith("/")) { href = this.DomainName.Substring(0, this.DomainName.Length - 1) + href; }
                 if (!href.StartsWith(this.DomainName)) { continue; }
-                if (!hrefslist.Any(w => w.URL == href)) { hrefslist.Add(new WebsiteURL(href)); }
+                if (!this.WebsiteURLs.Any(w => w.URL == href)) { this.WebsiteURLs.Add(new WebsiteURL(href)); }
             }
-            return hrefslist.ToArray();
+            return this.WebsiteURLs.ToArray();
         }
 
         private string[] getMailsFromPage(string text)
@@ -85,10 +93,7 @@ namespace E_Crawl_CSharp
             MatchCollection mails = emailregex.Matches(text);
 
             List<string> emails = new List<string>();
-            foreach (Match mail in mails)
-            {
-                emails.Add(mail.Value);
-            }
+            foreach (Match mail in mails) {emails.Add(mail.Value); }
             return emails.ToArray();
         }
     } 
