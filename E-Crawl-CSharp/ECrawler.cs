@@ -13,6 +13,11 @@ namespace E_Crawl_CSharp
             this.Result = new List<WebsiteEmail>();
             this.WebsiteURLs = new List<WebsiteURL>();
             this.TargetMailCount = TargetMailCount;
+
+            Console.WriteLine("Domain name: " + this.DomainName);
+            Console.WriteLine("Depth      : " + this.Depth);
+            Console.WriteLine("Max Emails : " + this.TargetMailCount);
+            Console.WriteLine();
         }
 
         public List<WebsiteEmail> Result { get; }
@@ -22,7 +27,7 @@ namespace E_Crawl_CSharp
         public List<WebsiteURL> WebsiteURLs { get; }
         public int TargetMailCount { get; }
 
-        public async Task Execute()
+        public async Task<List<string>> Execute()
         {
             HttpClient client = new HttpClient();
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
@@ -35,6 +40,10 @@ namespace E_Crawl_CSharp
             Console.ForegroundColor = ConsoleColor.Green;
             foreach (WebsiteEmail mail in this.Result) { Console.WriteLine(mail.Email + " -> " + mail.URL); }
             Console.ResetColor();
+
+            List<string> mailsList = new List<string>();
+            foreach (WebsiteEmail mail in this.Result) { mailsList.Add(mail.Email); }
+            return mailsList;
         }
 
         private async Task recursive(HttpClient Client,  int MaxDepth, int Depth = 1)
