@@ -35,7 +35,7 @@ namespace E_Crawl_CSharp
 
         private async Task recursive(HttpClient Client,  int MaxDepth, int Depth = 1)
         {
-            if (Depth > MaxDepth) { return; }
+            if (Depth > MaxDepth && MaxDepth != -1) { return; }
             string queryresponse = await Client.GetStringAsync(this.DomainName);
             getURLsFromPage(queryresponse);
 
@@ -43,8 +43,8 @@ namespace E_Crawl_CSharp
             {
                 if (websiteUrl.Visited == true) { continue; }
                 websiteUrl.Visited = true;
-
                 Console.WriteLine("[SCANNING] " + "Depth: " + Depth + " " + websiteUrl.URL);
+
                 try
                 {
                     queryresponse = await Client.GetStringAsync(websiteUrl.URL);
@@ -55,7 +55,6 @@ namespace E_Crawl_CSharp
                     {
                         if (string.IsNullOrWhiteSpace(mail)) { continue; }
                         string cleanmail = mail;
-
                         if (cleanmail.StartsWith("mailto:")) { cleanmail = cleanmail.Substring(7); }
                         if (!this.Result.Contains(cleanmail)) { this.Result.Add(cleanmail); }
                     }
@@ -69,7 +68,7 @@ namespace E_Crawl_CSharp
                 }           
             }
 
-            await recursive(Client, MaxDepth, Depth + 1);
+            if(this.WebsiteURLs.Any(w => w.Visited == false)) { await recursive(Client, MaxDepth, Depth + 1); }        
         }
 
         private WebsiteURL[] getURLsFromPage(string text) {
@@ -84,6 +83,7 @@ namespace E_Crawl_CSharp
                 if (!href.StartsWith(this.DomainName)) { continue; }
                 if (!this.WebsiteURLs.Any(w => w.URL == href)) { this.WebsiteURLs.Add(new WebsiteURL(href)); }
             }
+            
             return this.WebsiteURLs.ToArray();
         }
 

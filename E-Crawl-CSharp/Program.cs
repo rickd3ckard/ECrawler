@@ -4,7 +4,7 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        ECrawler crawler = new ECrawler("http://www.tb-immo.com/", 5);
+        ECrawler crawler = new ECrawler("https://www.maisonsmoches.be/", -1);
         await crawler.Execute();
     }
 }
