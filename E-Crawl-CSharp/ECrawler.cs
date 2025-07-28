@@ -4,13 +4,14 @@ namespace E_Crawl_CSharp
 {
     public class ECrawler
     {
-        public ECrawler(string DomainName, int Depth = 1)
+        public ECrawler(string DomainName, int Depth = -1, int TargetMailCount = -1)
         {
             this.DomainName = DomainName;
             this.Depth = Depth;
             this.Completed = false;
             this.Result = new List<string>();
             this.WebsiteURLs = new List<WebsiteURL>();
+            this.TargetMailCount = TargetMailCount;
         }
 
         public List<string> Result { get; }
@@ -18,6 +19,8 @@ namespace E_Crawl_CSharp
         public string DomainName { get; }
         public int Depth { get; }
         public List<WebsiteURL> WebsiteURLs { get; }
+        public int TargetMailCount { get; }
+
         public async Task Execute()
         {
             HttpClient client = new HttpClient();
@@ -36,6 +39,8 @@ namespace E_Crawl_CSharp
         private async Task recursive(HttpClient Client,  int MaxDepth, int Depth = 1)
         {
             if (Depth > MaxDepth && MaxDepth != -1) { return; }
+            if (Result.Count == TargetMailCount) { return; }
+
             string queryresponse = await Client.GetStringAsync(this.DomainName);
             getURLsFromPage(queryresponse);
 
@@ -57,6 +62,7 @@ namespace E_Crawl_CSharp
                         string cleanmail = mail;
                         if (cleanmail.StartsWith("mailto:")) { cleanmail = cleanmail.Substring(7); }
                         if (!this.Result.Contains(cleanmail)) { this.Result.Add(cleanmail); }
+                        if (this.TargetMailCount == Result.Count) { return; }
                     }
                 }
 
