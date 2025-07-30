@@ -1,6 +1,10 @@
 ﻿using E_Crawl_CSharp;
+using System.Runtime.InteropServices;
 
-//implement output file
+// implement output file as json
+// implement domains for a list (txt file)
+// write help display function
+
 class Program
 {
     private static async Task Main(string[] args)
@@ -29,7 +33,11 @@ class Program
         if (args.Length < 3) { Console.WriteLine("You must provide a domain name. Type 'ecrawler help' for clarification."); }
         string domainName = args[2] ?? string.Empty;
 
-        // check for domain name formatting.
+        if (FormatDomainName(ref domainName) == false)
+        {
+            Console.WriteLine("The provided URL is not properly formatted. Type 'ecrawler help' for clarification.");
+            return;
+        }
 
         byte buffer = 2;
         int depth = -1;
@@ -56,5 +64,13 @@ class Program
         ECrawler crawler = new ECrawler(domainName, depth, maxemails);
         await crawler.Execute();
         return;
+    }
+
+    private static bool FormatDomainName(ref string DomainName)
+    {
+        if (!DomainName.StartsWith("http://www.") && !DomainName.StartsWith("https://www.")) {return false; }
+        if (DomainName.StartsWith("http://www.")) { DomainName.Replace("http://www.", "https://www."); }
+        if (!DomainName.EndsWith('/')) { DomainName = DomainName + "/"; }
+        return true;
     }
 }
