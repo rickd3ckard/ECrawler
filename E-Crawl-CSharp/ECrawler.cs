@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace E_Crawl_CSharp
@@ -46,8 +47,9 @@ namespace E_Crawl_CSharp
             return mailsList;
         }
 
-        private async Task recursive(HttpClient Client,  int MaxDepth, int Depth = 1)
+        private async Task recursive(HttpClient Client,  int MaxDepth, int Depth = 0)
         {
+            Console.ForegroundColor = ConsoleColor.Blue; Console.WriteLine("Depth :" + Depth); Console.ResetColor();
             if (Depth > MaxDepth && MaxDepth != -1) { return; }
             if (Result.Count == TargetMailCount) { return; }
 
@@ -71,6 +73,9 @@ namespace E_Crawl_CSharp
                         if (string.IsNullOrWhiteSpace(mail)) { continue; }
                         string cleanmail = mail;
                         if (cleanmail.StartsWith("mailto:")) { cleanmail = cleanmail.Substring(7); }
+                        string[] forbiddenExtentions = [".png", ".webp", ".jepg", ".jpg"];
+                        string mailExtension = cleanmail.Substring(cleanmail.LastIndexOf('.'));
+                        if (forbiddenExtentions.Contains(mailExtension)) { continue; }
                         if (!this.Result.Any(e => e.Email == cleanmail)) { this.Result.Add(new WebsiteEmail(cleanmail, websiteUrl.URL)); }
                         if (this.TargetMailCount == Result.Count) { return; }
                     }
@@ -93,9 +98,10 @@ namespace E_Crawl_CSharp
 
             foreach (Match match in hrefs)
             {
-                string href = match.Value;          
+                string href = match.Value;
+                if (href.StartsWith("//")) { continue; }
                 if (href.StartsWith("href=")) { href = match.Value.ToString().Substring("href=".Length + 1, match.Value.ToString().Length - 1 - ("href=".Length + 1)); }
-                if (href.StartsWith("/")) { href = this.DomainName.Substring(0, this.DomainName.Length - 1) + href; }
+                if (href.StartsWith("/")) { href = this.DomainName.Substring(0, this.DomainName.Length - 1) + href; }         
                 if (!href.StartsWith(this.DomainName)) { continue; }
                 if (!this.WebsiteURLs.Any(w => w.URL == href)) { this.WebsiteURLs.Add(new WebsiteURL(href)); }
             }

@@ -1,4 +1,5 @@
 ﻿using E_Crawl_CSharp;
+using System.Runtime.InteropServices;
 
 // implement output file as json
 // implement domains for a list (txt file)
@@ -8,6 +9,19 @@ class Program
 {
     private static async Task Main(string[] args)
     {
+        //string list = @"C:\Users\Finet Laurent\Desktop\sites.txt";
+        //using (StreamReader reader = new StreamReader(list))
+        //{
+        //    while (reader.EndOfStream == false)
+        //    {
+        //        string url = reader.ReadLine() ?? string.Empty;
+        //        FormatDomainName(ref url);
+        //        Console.WriteLine(url);
+        //    }
+
+        //    return;
+        //}
+
         if (args.Length < 1)
         {
             Console.WriteLine("Unknown command. Type 'ecrawler help' for available commands.");
@@ -72,7 +86,7 @@ class Program
 
     private static async Task ScrapeDomain(string DomainName, string[] args)
     {
-        byte buffer = 2;
+        byte buffer = 1;
         int depth = -1;
         int maxemails = -1;
 
@@ -101,9 +115,18 @@ class Program
 
     private static bool FormatDomainName(ref string DomainName)
     {
-        if (!DomainName.StartsWith("http://www.") && !DomainName.StartsWith("https://www.")) {return false; }
-        if (DomainName.StartsWith("http://www.")) { DomainName.Replace("http://www.", "https://www."); }
-        if (!DomainName.EndsWith('/')) { DomainName = DomainName + "/"; }
-        return true;
+        try
+        {
+            DomainName = DomainName.Replace("\\", "/");
+            Uri newUri = new Uri(DomainName); string root = newUri.Host;
+            if (!root.StartsWith("www.")) { root = "www." + root; }
+            DomainName = "https://" + root + "/";
+            return true;
+        }
+
+        catch {
+            Console.WriteLine("An error occurred while parsing the URI: " + DomainName);
+            return false; 
+        }
     }
 }
