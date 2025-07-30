@@ -1,6 +1,4 @@
-﻿using System.Net;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace E_Crawl_CSharp
 {
@@ -12,7 +10,7 @@ namespace E_Crawl_CSharp
             this.Depth = Depth;
             this.Completed = false;
             this.Result = new List<WebsiteEmail>();
-            this.WebsiteURLs = new List<WebsiteURL>();
+            this.VisitedURLs = new List<string>();
             this.TargetMailCount = TargetMailCount;
 
             Console.WriteLine("Domain name: " + this.DomainName);
@@ -25,7 +23,7 @@ namespace E_Crawl_CSharp
         public bool Completed  { get; }
         public string DomainName { get; }
         public int Depth { get; }
-        public List<WebsiteURL> WebsiteURLs { get; }
+        public List<string> VisitedURLs { get; }
         public int TargetMailCount { get; }
 
         public async Task<List<string>> Execute()
@@ -36,7 +34,7 @@ namespace E_Crawl_CSharp
             client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("en-US,en;q=0.9");
             client.DefaultRequestHeaders.Referrer = new Uri("https://www.maisonsmoches.be/");
 
-            await recursive(client, this.Depth);
+            await recursivequeue(client, this.Depth, this.DomainName);
 
             Console.ForegroundColor = ConsoleColor.Green;
             foreach (WebsiteEmail mail in this.Result) { Console.WriteLine(mail.Email + " -> " + mail.URL); }
@@ -47,54 +45,44 @@ namespace E_Crawl_CSharp
             return mailsList;
         }
 
-        private async Task recursive(HttpClient Client,  int MaxDepth, int Depth = 0)
+        private Queue<WebsiteURL> _queue = new Queue<WebsiteURL>();
+        
+        private async Task recursivequeue(HttpClient Client, int MaxDepth, string targetDomain)
         {
-            Console.ForegroundColor = ConsoleColor.Blue; Console.WriteLine("Depth :" + Depth); Console.ResetColor();
-            if (Depth > MaxDepth && MaxDepth != -1) { return; }
-            if (Result.Count == TargetMailCount) { return; }
+            _queue.Enqueue(new WebsiteURL(targetDomain, 1));
+            this.VisitedURLs.Add(targetDomain);
 
-            string queryresponse = await Client.GetStringAsync(this.DomainName);
-            getURLsFromPage(queryresponse);
-
-            foreach (WebsiteURL websiteUrl in this.WebsiteURLs)
+            while (_queue.Count > 0)
             {
-                if (websiteUrl.Visited == true) { continue; }
-                websiteUrl.Visited = true;
-                Console.WriteLine("[SCANNING] " + "Depth: " + Depth + " " + websiteUrl.URL);
+                WebsiteURL targetURL = _queue.Dequeue();
+                Console.WriteLine("Depth: " + targetURL.Depth + "; " + targetURL.URL);
+                               
+                string queryresponse = string.Empty;
+                try { queryresponse = await Client.GetStringAsync(targetURL.URL); }
+                catch { continue; }
+             
+                if (targetURL.Depth + 1 <= MaxDepth) { getURLsFromPage(queryresponse, targetURL.Depth); }
 
-                try
+                string[] mails = getMailsFromPage(queryresponse);
+                if (mails.Length == 0) { continue; }
+
+                foreach (string mail in mails)
                 {
-                    queryresponse = await Client.GetStringAsync(websiteUrl.URL);
-                    string[] mails = getMailsFromPage(queryresponse);
-                    if (mails.Length == 0) { continue; }
-
-                    foreach (string mail in mails)
-                    {
-                        if (string.IsNullOrWhiteSpace(mail)) { continue; }
-                        string cleanmail = mail;
-                        if (cleanmail.StartsWith("mailto:")) { cleanmail = cleanmail.Substring(7); }
-                        string[] forbiddenExtentions = [".png", ".webp", ".jepg", ".jpg"];
-                        string mailExtension = cleanmail.Substring(cleanmail.LastIndexOf('.'));
-                        if (forbiddenExtentions.Contains(mailExtension)) { continue; }
-                        if (!this.Result.Any(e => e.Email == cleanmail)) { this.Result.Add(new WebsiteEmail(cleanmail, websiteUrl.URL)); }
-                        if (this.TargetMailCount == Result.Count) { return; }
-                    }
+                    if (string.IsNullOrWhiteSpace(mail)) { continue; }
+                    string cleanmail = mail;
+                    if (cleanmail.StartsWith("mailto:")) { cleanmail = cleanmail.Substring(7); }
+                    string[] forbiddenExtentions = [".png", ".webp", ".jepg", ".jpg"];
+                    string mailExtension = cleanmail.Substring(cleanmail.LastIndexOf('.'));
+                    if (forbiddenExtentions.Contains(mailExtension)) { continue; }
+                    if (!this.Result.Any(e => e.Email == cleanmail)) { this.Result.Add(new WebsiteEmail(cleanmail, targetURL.URL)); }
+                    if (this.TargetMailCount == Result.Count) { return; }
                 }
-
-                catch (Exception ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("[ERROR]: " + ex.Message.ToString());
-                    Console.ResetColor();
-                }           
             }
-
-            if(this.WebsiteURLs.Any(w => w.Visited == false)) { await recursive(Client, MaxDepth, Depth + 1); }        
         }
 
-        private WebsiteURL[] getURLsFromPage(string text) {
+        private void getURLsFromPage(string Text, int Depth) {
             Regex hrefregex = new Regex("href=[\"\\'](.*?)[\"\\']");
-            MatchCollection hrefs = hrefregex.Matches(text);
+            MatchCollection hrefs = hrefregex.Matches(Text);
 
             foreach (Match match in hrefs)
             {
@@ -103,10 +91,11 @@ namespace E_Crawl_CSharp
                 if (href.StartsWith("href=")) { href = match.Value.ToString().Substring("href=".Length + 1, match.Value.ToString().Length - 1 - ("href=".Length + 1)); }
                 if (href.StartsWith("/")) { href = this.DomainName.Substring(0, this.DomainName.Length - 1) + href; }         
                 if (!href.StartsWith(this.DomainName)) { continue; }
-                if (!this.WebsiteURLs.Any(w => w.URL == href)) { this.WebsiteURLs.Add(new WebsiteURL(href)); }
+                if (!this.VisitedURLs.Contains(href)) {
+                    VisitedURLs.Add(href);
+                    _queue.Enqueue(new WebsiteURL(href, Depth + 1));             
+                }
             }
-            
-            return this.WebsiteURLs.ToArray();
         }
 
         private string[] getMailsFromPage(string text)
@@ -122,14 +111,14 @@ namespace E_Crawl_CSharp
 
     public class WebsiteURL
     {
-        public WebsiteURL(string URL, bool Visited = false)
+        public WebsiteURL(string URL, int Depth)
         {
             this.URL = URL;
-            this.Visited = Visited;
+            this.Depth = Depth;
         }
 
         public string URL { get; set; }
-        public bool Visited { get; set; }
+        public int Depth { get; set; }
     }
 
     public class WebsiteEmail

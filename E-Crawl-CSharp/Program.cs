@@ -9,19 +9,6 @@ class Program
 {
     private static async Task Main(string[] args)
     {
-        //string list = @"C:\Users\Finet Laurent\Desktop\sites.txt";
-        //using (StreamReader reader = new StreamReader(list))
-        //{
-        //    while (reader.EndOfStream == false)
-        //    {
-        //        string url = reader.ReadLine() ?? string.Empty;
-        //        FormatDomainName(ref url);
-        //        Console.WriteLine(url);
-        //    }
-
-        //    return;
-        //}
-
         if (args.Length < 1)
         {
             Console.WriteLine("Unknown command. Type 'ecrawler help' for available commands.");
