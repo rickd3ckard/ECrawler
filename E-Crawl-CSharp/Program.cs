@@ -1,8 +1,6 @@
 ﻿using E_Crawl_CSharp;
-using System.Runtime.InteropServices;
 
 // implement output file as json
-// implement domains for a list (txt file)
 // write help display function
 
 class Program

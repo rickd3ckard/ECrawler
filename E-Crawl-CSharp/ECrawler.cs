@@ -36,9 +36,13 @@ namespace E_Crawl_CSharp
 
             await recursivequeue(client, this.Depth, this.DomainName);
 
-            Console.ForegroundColor = ConsoleColor.Green;
-            foreach (WebsiteEmail mail in this.Result) { Console.WriteLine(mail.Email + " -> " + mail.URL); }
-            Console.ResetColor();
+            if (this.Result.Count > 0) {
+                Console.ForegroundColor = ConsoleColor.Green; Console.WriteLine();
+                foreach (WebsiteEmail mail in this.Result) { Console.WriteLine(mail.Email + " -> " + mail.URL); }
+                Console.ResetColor();
+            }
+
+            Console.WriteLine();
 
             List<string> mailsList = new List<string>();
             foreach (WebsiteEmail mail in this.Result) { mailsList.Add(mail.Email); }
@@ -54,12 +58,18 @@ namespace E_Crawl_CSharp
 
             while (_queue.Count > 0)
             {
-                WebsiteURL targetURL = _queue.Dequeue();
-                Console.WriteLine("Depth: " + targetURL.Depth + "; " + targetURL.URL);
-                               
+                WebsiteURL targetURL = _queue.Dequeue();                                      
                 string queryresponse = string.Empty;
-                try { queryresponse = await Client.GetStringAsync(targetURL.URL); }
-                catch { continue; }
+                try { 
+                    queryresponse = await Client.GetStringAsync(targetURL.URL);
+                    Console.WriteLine("[200OK] Depth: " + targetURL.Depth + "; " + targetURL.URL);
+                }
+                catch (Exception ex) {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("[ERROR] Depth: " + targetURL.Depth + "; " + targetURL.URL + " -> " + ex.Message);
+                    Console.ResetColor();
+                    continue; 
+                }
              
                 if (targetURL.Depth + 1 <= MaxDepth) { getURLsFromPage(queryresponse, targetURL.Depth); }
 
