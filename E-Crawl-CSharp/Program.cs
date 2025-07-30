@@ -51,11 +51,14 @@ class Program
         string domainList = args[1] ?? string.Empty;
         if (!File.Exists(domainList)) { Console.WriteLine("The provided domain list file does not exist."); return; }
         if (!domainList.EndsWith(".txt")) { Console.WriteLine("The provided domain list file must be a text file (.txt)"); return; }
-        Console.WriteLine(domainList);
+        
+        int totalLines = File.ReadLines(domainList).Count();
+        int currentline = 1;
         using (StreamReader reader = new StreamReader(domainList))
         {
             while (reader.EndOfStream == false)
             {
+                
                 string domainName = reader.ReadLine() ?? string.Empty;
                 if (FormatDomainName(ref domainName) == false)
                 {
@@ -65,6 +68,9 @@ class Program
 
                 try { await ScrapeDomain(domainName, args); }
                 catch { Console.WriteLine("An error occured while attempting to scrape the domain: " + domainName); }
+
+                Console.WriteLine($"Progress: {currentline} of {totalLines} websites scraped so far...");
+                currentline += 1;
             }
         };
     }
