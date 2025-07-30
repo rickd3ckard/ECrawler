@@ -1,5 +1,4 @@
 ﻿using E_Crawl_CSharp;
-using System.Runtime.InteropServices;
 
 // implement output file as json
 // implement domains for a list (txt file)
@@ -15,6 +14,8 @@ class Program
             return;
         }
 
+        Console.WriteLine(args);
+
         string firstArgument = args[0];
         switch (firstArgument)
         {
@@ -22,23 +23,55 @@ class Program
                 //DisplayHelp();
                 return; 
             case "domain":
-                await ScrapeMails(args); return;
+                await ScrapeSingleDomain(args); return;
+            case "domains":
+                await ScrapeMultipleDomains(args); return;
             default:
                 Console.WriteLine("Unknown command. Type 'ecrawler help' for available commands."); return;
         }     
     }
 
-    private static async Task ScrapeMails(string[] args)
+    private static async Task ScrapeSingleDomain(string[] args)
     {
         if (args.Length < 3) { Console.WriteLine("You must provide a domain name. Type 'ecrawler help' for clarification."); }
-        string domainName = args[2] ?? string.Empty;
+        string domainName = args[1] ?? string.Empty;
 
         if (FormatDomainName(ref domainName) == false)
         {
-            Console.WriteLine("The provided URL is not properly formatted. Type 'ecrawler help' for clarification.");
+            Console.WriteLine($"The provided URL {domainName} is not properly formatted. Type 'ecrawler help' for clarification.");
             return;
         }
 
+        try { await ScrapeDomain(domainName, args); }
+        catch { Console.WriteLine("An error occured while attempting to scrape the domain: " + domainName); }
+    }
+
+    private static async Task ScrapeMultipleDomains(string[] args)
+    {
+        if (args.Length < 3) { Console.WriteLine("You must provide a domain list. Type 'ecrawler help' for clarification."); }
+        string domainList = args[1] ?? string.Empty;
+        if (!File.Exists(domainList)) { Console.WriteLine("The provided domain list file does not exist."); return; }
+        if (!domainList.EndsWith(".txt")) { Console.WriteLine("The provided domain list file must be a text file (.txt)"); return; }
+        Console.WriteLine(domainList);
+        using (StreamReader reader = new StreamReader(domainList))
+        {
+            while (reader.EndOfStream == false)
+            {
+                string domainName = reader.ReadLine() ?? string.Empty;
+                if (FormatDomainName(ref domainName) == false)
+                {
+                    Console.WriteLine($"The provided URL {domainName} is not properly formatted. Type 'ecrawler help' for clarification.");
+                    return;
+                }
+
+                try { await ScrapeDomain(domainName, args); }
+                catch { Console.WriteLine("An error occured while attempting to scrape the domain: " + domainName); }
+            }
+        };
+    }
+
+    private static async Task ScrapeDomain(string DomainName, string[] args)
+    {
         byte buffer = 2;
         int depth = -1;
         int maxemails = -1;
@@ -61,7 +94,7 @@ class Program
             }
         }
 
-        ECrawler crawler = new ECrawler(domainName, depth, maxemails);
+        ECrawler crawler = new ECrawler(DomainName, depth, maxemails);
         await crawler.Execute();
         return;
     }
