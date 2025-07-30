@@ -1,6 +1,6 @@
 ﻿using E_Crawl_CSharp;
+using System.Text.Json.Nodes;
 
-// implement output file as json
 // write help display function
 
 class Program
@@ -94,7 +94,8 @@ class Program
         }
 
         ECrawler crawler = new ECrawler(DomainName, depth, maxemails);
-        await crawler.Execute();
+        List<string> emailList = await crawler.Execute();
+        AppendToFile(@"C:\Users\Finet Laurent\Desktop\urls.json", emailList, DomainName);
         return;
     }
 
@@ -113,5 +114,33 @@ class Program
             Console.WriteLine("An error occurred while parsing the URI: " + DomainName);
             return false; 
         }
+    }
+
+    private static bool AppendToFile(string FullFileName, List<string> EmailsList, string DomainName)
+    {
+        JsonObject? newobject = new JsonObject();
+
+        if (!File.Exists(FullFileName)) { 
+            Console.WriteLine("Couldn't append the emails to the provided file: File does not exists.");
+
+            try {File.WriteAllText(FullFileName, "{}"); } 
+            catch {Console.WriteLine("Couldn't append the emails to the provided file: Could not create the file."); return false; }
+        } 
+
+        else
+        {
+            JsonNode? node = JsonNode.Parse(File.ReadAllText(FullFileName));
+            if (node == null) { throw new Exception("New json node is null."); }
+            newobject = node as JsonObject; if (newobject == null) { throw new Exception("New json object is null."); }
+
+            if (newobject.ContainsKey(DomainName)) { Console.WriteLine("Couldn't append the emails to the provided file: Domain is already present in the list."); return false; }
+        }
+
+        JsonArray emailArray = new JsonArray();
+        foreach (string mail in EmailsList) {emailArray.Add(mail); }
+
+        newobject.Add(DomainName, emailArray);
+        File.WriteAllText(FullFileName, newobject.ToString());   
+        return true;
     }
 }

@@ -62,7 +62,7 @@ namespace E_Crawl_CSharp
                 string queryresponse = string.Empty;
                 try { 
                     queryresponse = await Client.GetStringAsync(targetURL.URL);
-                    Console.WriteLine("[200OK] Depth: " + targetURL.Depth + "; " + targetURL.URL);
+                    Console.WriteLine("[OK200] Depth: " + targetURL.Depth + "; " + targetURL.URL);
                 }
                 catch (Exception ex) {
                     Console.ForegroundColor = ConsoleColor.Red;
