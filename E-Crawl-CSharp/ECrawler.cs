@@ -81,9 +81,9 @@ namespace E_Crawl_CSharp
                     if (string.IsNullOrWhiteSpace(mail)) { continue; }
                     string cleanmail = mail;
                     if (cleanmail.StartsWith("mailto:")) { cleanmail = cleanmail.Substring(7); }
-                    string[] forbiddenExtentions = [".png", ".webp", ".jepg", ".jpg"];
+                    string[] allowedExtentions = [".be", ".com", ".eu", ".net", ".org", ".fr", ".ch", ".de", ".nl", ".it"];
                     string mailExtension = cleanmail.Substring(cleanmail.LastIndexOf('.'));
-                    if (forbiddenExtentions.Contains(mailExtension)) { continue; }
+                    if (!allowedExtentions.Contains(mailExtension)) { continue; }
                     if (!this.Result.Any(e => e.Email == cleanmail)) { this.Result.Add(new WebsiteEmail(cleanmail, targetURL.URL)); }
                     if (this.TargetMailCount == Result.Count) { return; }
                 }
