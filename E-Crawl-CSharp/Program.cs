@@ -101,7 +101,7 @@ class Program
 
         ECrawler crawler = new ECrawler(DomainName, depth, maxemails);
         List<string> emailList = await crawler.Execute();
-        AppendToFile(@"", emailList, DomainName);
+        AppendToFile(@"C:\Users\Finet Laurent\Desktop\urls.json", emailList, DomainName);
         return;
     }
 
